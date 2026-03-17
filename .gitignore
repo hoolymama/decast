@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Outputs
+*.transcript.json
+*.edit.json
+*.polished.mp4
+*.polished.script.txt
+*.raw_response.txt
+*.srt
+
+# Environment
+.env
+
+# OS
+.DS_Store
+
+# Demo files
+/examples/
