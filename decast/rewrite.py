@@ -88,8 +88,7 @@ Return ONLY valid JSON (no prose, no markdown fences):
 Do not list cut sections — only the kept segments."""
 
 
-def rewrite(transcript_path: str, out_path: str = None,
-            cut_mode: str = "auto") -> tuple[dict, str]:
+def rewrite(transcript_path: str, out_path: str = None) -> tuple[dict, str]:
     """Send transcript to Claude for rewriting."""
     import anthropic
 
@@ -142,7 +141,6 @@ def rewrite(transcript_path: str, out_path: str = None,
         "source_video":     transcript["video"],
         "source_duration":  transcript["duration"],
         "transcript_path":  str(transcript_path),
-        "cut_mode":         cut_mode,
     }
 
     with open(out_path, "w") as f:
