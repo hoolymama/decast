@@ -2,12 +2,17 @@ import sys
 import json
 from pathlib import Path
 
-from .config import WHISPER_MODEL, WHISPER_LANGUAGE
+from .config import WHISPER_LANGUAGE
 from .utils import video_has_audio
 
-def transcribe(video_path: str, out_path: str = None) -> tuple[dict, str]:
+def transcribe(video_path: str, out_path: str = None,
+               whisper_model: str = None) -> tuple[dict, str]:
     """Run faster-whisper and return word-level transcript with timestamps."""
     from faster_whisper import WhisperModel
+
+    if whisper_model is None:
+        from .config import WHISPER_MODEL
+        whisper_model = WHISPER_MODEL
 
     video_path = Path(video_path)
     if not video_path.exists():
@@ -23,8 +28,8 @@ def transcribe(video_path: str, out_path: str = None) -> tuple[dict, str]:
     if out_path is None:
         out_path = str(video_path.with_suffix(".transcript.json"))
 
-    print(f"[1/3] Transcribing with Whisper ({WHISPER_MODEL})…")
-    model = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+    print(f"[1/4] Transcribing with Whisper ({whisper_model})…")
+    model = WhisperModel(whisper_model, device="cpu", compute_type="int8")
     segments, info = model.transcribe(
         str(video_path), word_timestamps=True, language=WHISPER_LANGUAGE,
     )
