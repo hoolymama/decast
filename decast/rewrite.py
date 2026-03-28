@@ -5,7 +5,6 @@ import textwrap
 from pathlib import Path
 
 from .config import ANTHROPIC_MODEL
-from .markers import detect_markers, build_marker_segments
 
 
 REWRITE_SYSTEM_AUTO = """\
@@ -89,58 +88,9 @@ Return ONLY valid JSON (no prose, no markdown fences):
 Do not list cut sections — only the kept segments."""
 
 
-REWRITE_SYSTEM_MARKER = """\
-You are an expert screencast script writer. You receive a list of video segments with
-raw narration text, and you must rewrite the narration to be clear and concise.
-
-You do NOT decide what to cut or keep — the segments are already defined. Your only
-job is to rewrite the narration for each segment.
-
-## TONE AND STYLE
-
-- **Second person.** Address the viewer as "you".
-- **Concise, not robotic.** Cut filler and fluff but keep it human and natural.
-- **Kill filler words.** No "so", "basically", "actually", "alright", "okay so",
-  "let's go ahead and", "um", "uh", "you know", "like".
-- **Don't repeat yourself.** If the raw text says the same thing twice, say it once.
-- **Trim the rambling, keep the point.**
-- **Be specific about UI.** Name buttons, tabs, panels, and actions precisely.
-- Give each segment a short descriptive section title.
-
-## INPUT/OUTPUT
-
-You receive a JSON array of segments. Each has a "raw_text" field with the original
-spoken words. Segments with type "recast" are silent fast-forward sections — leave
-their narration empty.
-
-Return ONLY valid JSON (no prose, no markdown fences):
-{
-  "segments": [
-    {
-      "start": 0.0,
-      "end": 12.4,
-      "narration": "Rewritten narration for this segment.",
-      "section": "Short section title",
-      "type": "narrated"
-    },
-    {
-      "start": 12.4,
-      "end": 45.0,
-      "narration": "",
-      "section": "(fast-forward)",
-      "type": "recast"
-    }
-  ],
-  "editor_notes": "Any notes for the human editor."
-}
-
-Preserve the start, end, and type fields exactly as given. Only change narration
-and section. Do not add, remove, or reorder segments."""
-
-
 def rewrite(transcript_path: str, out_path: str = None,
-            cut_mode: str = "marker") -> tuple[dict, str]:
-    """Send transcript to Claude for rewriting. In marker mode, segments are pre-built."""
+            cut_mode: str = "auto") -> tuple[dict, str]:
+    """Send transcript to Claude for rewriting."""
     import anthropic
 
     transcript_path = Path(transcript_path)
@@ -154,27 +104,18 @@ def rewrite(transcript_path: str, out_path: str = None,
     if not api_key:
         sys.exit("Error: ANTHROPIC_API_KEY environment variable not set.")
 
-    if cut_mode == "marker":
-        system_prompt = REWRITE_SYSTEM_MARKER
-        segments = _prepare_marker_segments(transcript)
-        user_content = (
-            f"Here are the pre-defined segments from a {transcript['duration']:.0f}s screencast.\n"
-            f"Rewrite the narration for each segment.\n\n"
-            f"{json.dumps(segments, indent=2)}"
-        )
-    else:
-        system_prompt = REWRITE_SYSTEM_AUTO
-        word_lines = []
-        for w in transcript["words"]:
-            word_lines.append(f"[{w['start']:7.2f}s] {w['word']}")
-        user_content = (
-            f"Raw screencast transcript — total duration {transcript['duration']:.1f}s\n\n"
-            f"TIMESTAMPED WORDS:\n{chr(10).join(word_lines)}\n\n"
-            f"FULL TEXT (for readability):\n{transcript['text']}\n\n"
-            "Please produce the aligned segments with rewritten narration."
-        )
+    system_prompt = REWRITE_SYSTEM_AUTO
+    word_lines = []
+    for w in transcript["words"]:
+        word_lines.append(f"[{w['start']:7.2f}s] {w['word']}")
+    user_content = (
+        f"Raw screencast transcript — total duration {transcript['duration']:.1f}s\n\n"
+        f"TIMESTAMPED WORDS:\n{chr(10).join(word_lines)}\n\n"
+        f"FULL TEXT (for readability):\n{transcript['text']}\n\n"
+        "Please produce the aligned segments with rewritten narration."
+    )
 
-    print(f"[2/3] Sending to Claude for rewrite ({cut_mode} mode)…")
+    print(f"[2/3] Sending to Claude for rewrite…")
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model=ANTHROPIC_MODEL,
@@ -212,32 +153,6 @@ def rewrite(transcript_path: str, out_path: str = None,
     return edit, out_path
 
 
-def _prepare_marker_segments(transcript: dict) -> list[dict]:
-    """Build segments from markers in the transcript, for Claude to rewrite."""
-    words = transcript["words"]
-    markers = detect_markers(words)
-    duration = transcript["duration"]
-
-    segments = build_marker_segments(words, markers, duration)
-
-    if not segments:
-        print("    Warning: no segments produced (no speech detected?)")
-        return []
-
-    print(f"    Marker segmentation: {len(segments)} segments "
-          f"({sum(1 for s in segments if s['type'] == 'narrated')} narrated, "
-          f"{sum(1 for s in segments if s['type'] == 'recast')} recast)")
-    for i, seg in enumerate(segments):
-        dur = seg["end"] - seg["start"]
-        if seg["type"] == "recast":
-            print(f"      [{i+1}] RECAST  {seg['start']:.1f}s – {seg['end']:.1f}s  ({dur:.1f}s)")
-        else:
-            text_preview = seg["raw_text"][:60] + ("…" if len(seg["raw_text"]) > 60 else "")
-            print(f"      [{i+1}] NARRATE {seg['start']:.1f}s – {seg['end']:.1f}s  ({dur:.1f}s)  \"{text_preview}\"")
-
-    return segments
-
-
 def print_summary(edit: dict):
     segments = edit.get("segments", [])
     src_dur = edit.get("_meta", {}).get("source_duration", 0)
@@ -247,10 +162,8 @@ def print_summary(edit: dict):
     print("  ┌─ SEGMENTS ─────────────────────────────────────────────────")
     for i, s in enumerate(segments):
         duration = s["end"] - s["start"]
-        seg_type = s.get("type", "narrated")
-        type_label = " [RECAST]" if seg_type == "recast" else ""
         print(f"  │  [{i+1}] {s['start']:.2f}s – {s['end']:.2f}s  ({duration:.1f}s)  "
-              f"[{s.get('section', '')}]{type_label}")
+              f"[{s.get('section', '')}]")
         if s.get("narration"):
             wrapped = textwrap.fill(s["narration"], width=68,
                                     initial_indent="  │      ", subsequent_indent="  │      ")

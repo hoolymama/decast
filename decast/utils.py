@@ -3,7 +3,7 @@ import json
 import shutil
 import subprocess
 
-from .config import WORDS_PER_SECOND, MAX_SPEEDUP, RECAST_SPEEDUP
+from .config import WORDS_PER_SECOND, MAX_SPEEDUP
 
 
 def check_ffmpeg():
@@ -59,14 +59,11 @@ def srt_timestamp(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 
-def segment_speed(seg: dict) -> float:
+def segment_speed(seg: dict, max_speedup: float = MAX_SPEEDUP) -> float:
     """
     Calculate the playback speed for a segment so the video duration
     matches the time it takes to speak the narration at a natural pace.
-    RECAST segments use a fixed fast speedup.
     """
-    if seg.get("type") == "recast":
-        return RECAST_SPEEDUP
     narration = seg.get("narration", "").strip()
     if not narration:
         return 1.0
@@ -75,7 +72,7 @@ def segment_speed(seg: dict) -> float:
     video_secs = seg["end"] - seg["start"]
     if narration_secs <= 0 or video_secs <= narration_secs:
         return 1.0
-    return min(video_secs / narration_secs, MAX_SPEEDUP)
+    return min(video_secs / narration_secs, max_speedup)
 
 
 def format_duration(seconds: float) -> str:

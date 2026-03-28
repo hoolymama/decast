@@ -16,7 +16,7 @@ def _generate_srt(segments: list[dict], srt_path: str):
 
     Timecodes are relative to the OUTPUT video (after cuts and speedup).
     Each sentence in the narration becomes one subtitle entry — never split
-    mid-sentence. RECAST segments get no subtitles.
+    mid-sentence.
     """
     srt_lines = []
     counter = 1
@@ -112,10 +112,8 @@ def render(video_path: str, edit_path: str, out_path: str = None,
         out_dur = src_dur / speed
         total_input += src_dur
         total_output += out_dur
-        seg_type = seg.get("type", "narrated")
-        type_tag = " RECAST" if seg_type == "recast" else ""
         speed_str = f"{speed:.1f}x" if speed > 1.01 else "1x"
-        print(f"    Segment {i+1:2d}:  {src_dur:5.1f}s → {out_dur:5.1f}s ({speed_str}){type_tag}  "
+        print(f"    Segment {i+1:2d}:  {src_dur:5.1f}s → {out_dur:5.1f}s ({speed_str})  "
               f"[{seg.get('section', '')}]")
     print(f"    Total: {format_duration(total_input)} → {format_duration(total_output)}")
     print()
@@ -239,10 +237,8 @@ def render(video_path: str, edit_path: str, out_path: str = None,
         for s, speed in zip(segments, speeds):
             out_dur = (s["end"] - s["start"]) / speed
             ts = srt_timestamp(elapsed)
-            seg_type = s.get("type", "narrated")
             speed_note = f"  ({speed:.1f}x)" if speed > 1.01 else ""
-            type_note = "  [FAST-FORWARD]" if seg_type == "recast" else ""
-            f.write(f"[{ts}] [{s.get('section', 'Untitled')}]{speed_note}{type_note}\n")
+            f.write(f"[{ts}] [{s.get('section', 'Untitled')}]{speed_note}\n")
             if s.get("narration"):
                 f.write(s["narration"] + "\n")
             f.write("\n")

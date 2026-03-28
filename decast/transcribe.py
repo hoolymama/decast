@@ -4,8 +4,6 @@ from pathlib import Path
 
 from .config import WHISPER_MODEL, WHISPER_LANGUAGE
 from .utils import video_has_audio
-from .markers import detect_markers
-
 
 def transcribe(video_path: str, out_path: str = None) -> tuple[dict, str]:
     """Run faster-whisper and return word-level transcript with timestamps."""
@@ -56,14 +54,5 @@ def transcribe(video_path: str, out_path: str = None) -> tuple[dict, str]:
 
     print(f"    Transcript saved → {out_path}")
     print(f"    Duration: {info.duration:.1f}s  |  Words: {len(words)}  |  Language: {info.language}")
-
-    detected = detect_markers(words)
-    if detected:
-        print(f"    Markers found: {len(detected)}")
-        for m in detected:
-            marker_word = " ".join(words[i]["word"] for i in m["word_indices"])
-            print(f"      {m['type'].upper()} at {m['start']:.1f}s (heard: \"{marker_word}\")")
-    else:
-        print("    Markers found: none")
 
     return transcript, out_path
