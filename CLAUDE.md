@@ -42,6 +42,7 @@ All settings configurable via CLI flags, env vars, or .env file. Priority: CLI >
 | Gemini model | `--gemini-model` | `DECAST_GEMINI_MODEL` | `gemini-2.5-flash` |
 | Claude model | `--claude-model` | `DECAST_CLAUDE_MODEL` | `claude-sonnet-4-20250514` |
 | GCS bucket | `--gcs-bucket` | `DECAST_GCS_BUCKET` | None |
+| Purpose/tone | `--purpose` | `DECAST_PURPOSE` | `tutorial` |
 
 API keys: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (env vars only).
 

@@ -5,6 +5,34 @@ import textwrap
 from pathlib import Path
 
 
+PURPOSE_TONES = {
+    "tutorial": (
+        "Write as a step-by-step walkthrough. Address the viewer directly with "
+        '"you" and guide them through each action. Be thorough but concise — '
+        "explain what each step does and why.\n\n"
+        "Cut aggressively. A 20-minute raw recording should often become 3-5 minutes. "
+        "Keep enough context for a learner to follow, but remove anything that "
+        "doesn't advance understanding."
+    ),
+    "teaser": (
+        "Write as a features teaser. Short, punchy sentences focused on benefits "
+        "and capabilities. Don't explain how to do things step by step — show "
+        "what's possible. Energetic but not hypey. The viewer should come away "
+        "impressed, not instructed.\n\n"
+        "Cut very aggressively. A 20-minute raw recording should become 1-2 minutes. "
+        "Only the most impactful moments. Every sentence should earn its place."
+    ),
+    "demo": (
+        "Write as a professional product demo. Show the workflow without "
+        "hand-holding. Assume the viewer is evaluating the product, not learning "
+        "it for the first time. Narrate what's happening on screen factually and "
+        "let the product speak for itself.\n\n"
+        "Cut moderately. Keep the flow coherent but trim anything that doesn't "
+        "advance the story. A 20-minute recording should become 3-7 minutes."
+    ),
+}
+
+
 REWRITE_SYSTEM = """\
 You are an expert screencast editor and script writer. You receive:
 1. A raw transcript of what the presenter said (with timestamps)
@@ -21,7 +49,8 @@ trimmed to match the narration duration.
 
 ## TONE AND STYLE
 
-- **Second person.** Address the viewer as "you".
+{purpose_tone}
+
 - **Concise, not robotic.** Cut filler and fluff but keep it human and natural.
 - **Kill filler words.** No "so", "basically", "actually", "alright", "okay so",
   "let's go ahead and", "um", "uh", "you know", "like".
@@ -32,8 +61,6 @@ trimmed to match the narration duration.
 
 ## CUTTING RULES
 
-Cut aggressively. A 20-minute raw recording should often become 3-5 minutes.
-
 Cut out:
 - Long silences / dead air (>2 seconds of nothing happening)
 - All filler, fumbling, repeated attempts, false starts
@@ -42,7 +69,7 @@ Cut out:
 - Redundant explanations — write one clean version instead
 - Duplicate demonstrations of the same feature
 
-Keep only what is essential to understand the feature being demonstrated.
+Keep only what is essential.
 
 ## SPEEDUP CONSTRAINT
 
@@ -85,7 +112,7 @@ Return ONLY valid JSON (no prose, no markdown fences):
 
 def rewrite(transcript_path: str, scenes_path: str, out_path: str = None,
             claude_model: str = None, wpm: int = 150,
-            max_speed: float = None) -> tuple[dict, str]:
+            max_speed: float = None, purpose: str = "tutorial") -> tuple[dict, str]:
     """Send transcript + scenes to Claude for editorial rewrite."""
     import anthropic
 
@@ -133,7 +160,8 @@ def rewrite(transcript_path: str, scenes_path: str, out_path: str = None,
         "Produce the edit plan with rewritten narration."
     )
 
-    system_prompt = REWRITE_SYSTEM.format(wpm=wpm, max_speed=max_speed)
+    purpose_tone = PURPOSE_TONES.get(purpose, PURPOSE_TONES["tutorial"])
+    system_prompt = REWRITE_SYSTEM.format(wpm=wpm, max_speed=max_speed, purpose_tone=purpose_tone)
 
     print(f"[3/4] Sending to Claude for editorial rewrite…")
     client = anthropic.Anthropic(api_key=api_key)
@@ -163,6 +191,7 @@ def rewrite(transcript_path: str, scenes_path: str, out_path: str = None,
         "source_duration":  transcript["duration"],
         "transcript_path":  str(transcript_path),
         "scenes_path":      str(scenes_path),
+        "purpose":          purpose,
     }
 
     with open(out_path, "w") as f:

@@ -40,6 +40,9 @@ def _add_config_args(parser):
                         help="Claude model name (default: claude-sonnet-4-20250514, env: DECAST_CLAUDE_MODEL)")
     parser.add_argument("--gcs-bucket", default=None,
                         help="GCS bucket for persistent video storage (env: DECAST_GCS_BUCKET)")
+    parser.add_argument("--purpose", default=None,
+                        choices=["tutorial", "teaser", "demo"],
+                        help="Video purpose/tone (default: tutorial, env: DECAST_PURPOSE)")
 
 
 def main():
@@ -138,7 +141,8 @@ def main():
         _, e_path = rewrite(t_path, s_path,
                             claude_model=cfg["claude_model"],
                             wpm=cfg["wpm"],
-                            max_speed=cfg["max_speed"])
+                            max_speed=cfg["max_speed"],
+                            purpose=cfg["purpose"])
         render(args.video, e_path, burn_subs=args.subs,
                max_speed=cfg["max_speed"], wpm=cfg["wpm"])
 
