@@ -10,7 +10,8 @@ from .utils import (
 )
 
 
-def _generate_srt(segments: list[dict], srt_path: str):
+def _generate_srt(segments: list[dict], srt_path: str,
+                  max_speed: float = None, words_per_second: float = None):
     """
     Generate an SRT subtitle file from the segment narrations.
 
@@ -24,7 +25,7 @@ def _generate_srt(segments: list[dict], srt_path: str):
 
     for seg in segments:
         narration = seg.get("narration", "").strip()
-        speed = segment_speed(seg)
+        speed = segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second)
         output_duration = (seg["end"] - seg["start"]) / speed
 
         if not narration:
@@ -77,8 +78,16 @@ def _build_atempo_chain(speed: float) -> str:
 
 
 def render(video_path: str, edit_path: str, out_path: str = None,
-           burn_subs: bool = False):
+           burn_subs: bool = False, max_speed: float = None, wpm: int = None):
     """Cut, speed-match, and concatenate video segments, optionally burning in subtitles."""
+    from .config import MAX_SPEEDUP, WORDS_PER_SECOND
+    if max_speed is None:
+        max_speed = MAX_SPEEDUP
+    if wpm is not None:
+        words_per_second = wpm / 60.0
+    else:
+        words_per_second = WORDS_PER_SECOND
+
     check_ffmpeg()
     video_path = Path(video_path)
     edit_path  = Path(edit_path)
@@ -102,7 +111,7 @@ def render(video_path: str, edit_path: str, out_path: str = None,
 
     has_audio = video_has_audio(str(video_path))
 
-    speeds = [segment_speed(seg) for seg in segments]
+    speeds = [segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second) for seg in segments]
 
     print(f"[3/3] Rendering {len(segments)} segment(s) with FFmpeg…")
     total_input = 0.0
@@ -119,7 +128,7 @@ def render(video_path: str, edit_path: str, out_path: str = None,
     print()
 
     srt_path = out_path.with_suffix(".srt")
-    _generate_srt(segments, str(srt_path))
+    _generate_srt(segments, str(srt_path), max_speed=max_speed, words_per_second=words_per_second)
     print(f"    Subtitles saved → {srt_path}")
 
     # Build FFmpeg filter_complex
