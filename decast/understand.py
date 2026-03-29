@@ -16,17 +16,17 @@ transitions, dialogs opening/closing, content loading, typing, scrolling, etc.
 ## OUTPUT FORMAT
 
 Return ONLY valid JSON (no prose, no markdown fences):
-{
+{{
   "events": [
-    {
+    {{
       "start": 0.0,
       "end": 5.8,
       "key_moment": 3.4,
       "description": "Short description of what happens on screen",
       "ui_context": "Which screen/panel/dialog is visible"
-    }
+    }}
   ]
-}
+}}
 
 ## RULES
 
