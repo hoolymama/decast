@@ -43,17 +43,27 @@ def _generate_srt(segments: list[dict], srt_path: str,
             elapsed += output_duration
             continue
 
+        # Speaking time without padding — subtitles only cover this window
+        speaking_secs = total_words / words_per_second if words_per_second else output_duration
+        # Clamp speaking time to output duration minus padding on each side
+        sub_start = elapsed + min(padding, output_duration / 3)
+        sub_window = min(speaking_secs, output_duration - padding * 2)
+        if sub_window <= 0:
+            sub_window = output_duration  # fallback: fill entire segment
+
         for sentence in sentences:
             sentence_words = len(sentence.split())
-            sentence_duration = output_duration * (sentence_words / total_words)
-            start_t = elapsed
-            end_t = elapsed + sentence_duration
+            sentence_duration = sub_window * (sentence_words / total_words)
+            start_t = sub_start
+            end_t = sub_start + sentence_duration
             srt_lines.append(str(counter))
             srt_lines.append(f"{srt_timestamp(start_t)} --> {srt_timestamp(end_t)}")
             srt_lines.append(sentence)
             srt_lines.append("")
             counter += 1
-            elapsed += sentence_duration
+            sub_start += sentence_duration
+
+        elapsed += output_duration
 
     with open(srt_path, "w") as f:
         f.write("\n".join(srt_lines))
