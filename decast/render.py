@@ -111,6 +111,36 @@ def render(video_path: str, edit_path: str, out_path: str = None,
 
     has_audio = video_has_audio(str(video_path))
 
+    # Auto-trim segments that are too long for the narration at max_speed.
+    # For each segment: if source footage > narration_duration * max_speed,
+    # trim centered on key_moment with padding.
+    BREATH_PADDING = 2.0  # seconds padding on each side of narration
+    trimmed = 0
+    for seg in segments:
+        narration = seg.get("narration", "").strip()
+        if not narration:
+            continue
+        word_count = len(narration.split())
+        narration_secs = word_count / words_per_second + BREATH_PADDING * 2
+        max_source = narration_secs * max_speed
+        src_dur = seg["end"] - seg["start"]
+        if src_dur > max_source:
+            key_moment = seg.get("key_moment", (seg["start"] + seg["end"]) / 2)
+            half = max_source / 2
+            new_start = max(seg["start"], key_moment - half)
+            new_end = min(seg["end"], key_moment + half)
+            # If we hit a boundary, shift the window
+            if new_end - new_start < max_source:
+                if new_start == seg["start"]:
+                    new_end = min(seg["end"], new_start + max_source)
+                else:
+                    new_start = max(seg["start"], new_end - max_source)
+            seg["start"] = round(new_start, 3)
+            seg["end"] = round(new_end, 3)
+            trimmed += 1
+    if trimmed:
+        print(f"    Auto-trimmed {trimmed} segment(s) to fit narration pace")
+
     speeds = [segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second) for seg in segments]
 
     print(f"[3/3] Rendering {len(segments)} segment(s) with FFmpeg…")

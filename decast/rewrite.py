@@ -76,11 +76,19 @@ Your script is the source of truth — write a cohesive, fluent narration first,
 then select video segments that illustrate it. The video will be sped up or
 trimmed to match.
 
-Maximum video speedup: {max_speed}x. If a segment would need more than
-{max_speed}x speedup, tighten its start/end times around the key_moment from
-the scene data instead. For example, if the key moment is at 14.2s within a
-12.0-24.0s event, trim to something like 13.0-16.0s rather than keeping all 12
-seconds.
+**Select tight video ranges.** Each segment's time range should closely match
+the action being described — don't include 60 seconds of footage for a sentence
+that takes 5 seconds to speak. Find the specific moment that illustrates the
+narration and select just that. Use the scene events and their key_moments to
+identify exactly when the important action happens.
+
+Maximum video speedup: {max_speed}x. As a rough guide, if your narration for
+a segment is N words, the video should be at most N / 2 seconds long (at
+{max_speed}x speedup). Tighter is better.
+
+For each segment, include the key_moment — the single most important timestamp
+within that segment (from the scene data). This is used for automatic trimming
+if the segment is still too long.
 
 ## OUTPUT FORMAT
 
@@ -90,6 +98,7 @@ Return ONLY valid JSON (no prose, no markdown fences):
     {{
       "start": 0.0,
       "end": 12.4,
+      "key_moment": 5.8,
       "narration": "Clear, concise narration for this segment.",
       "section": "Short section title",
       "type": "narrated"
