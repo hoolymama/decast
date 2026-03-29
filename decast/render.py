@@ -11,7 +11,8 @@ from .utils import (
 
 
 def _generate_srt(segments: list[dict], srt_path: str,
-                  max_speed: float = None, words_per_second: float = None):
+                  max_speed: float = None, words_per_second: float = None,
+                  padding: float = 0.0):
     """
     Generate an SRT subtitle file from the segment narrations.
 
@@ -25,7 +26,7 @@ def _generate_srt(segments: list[dict], srt_path: str,
 
     for seg in segments:
         narration = seg.get("narration", "").strip()
-        speed = segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second)
+        speed = segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second, padding=padding)
         output_duration = (seg["end"] - seg["start"]) / speed
 
         if not narration:
@@ -78,15 +79,18 @@ def _build_atempo_chain(speed: float) -> str:
 
 
 def render(video_path: str, edit_path: str, out_path: str = None,
-           burn_subs: bool = False, max_speed: float = None, wpm: int = None):
+           burn_subs: bool = False, max_speed: float = None, wpm: int = None,
+           padding: float = None):
     """Cut, speed-match, and concatenate video segments, optionally burning in subtitles."""
-    from .config import MAX_SPEEDUP, WORDS_PER_SECOND
+    from .config import MAX_SPEEDUP, WORDS_PER_SECOND, PADDING
     if max_speed is None:
         max_speed = MAX_SPEEDUP
     if wpm is not None:
         words_per_second = wpm / 60.0
     else:
         words_per_second = WORDS_PER_SECOND
+    if padding is None:
+        padding = PADDING
 
     check_ffmpeg()
     video_path = Path(video_path)
@@ -113,15 +117,14 @@ def render(video_path: str, edit_path: str, out_path: str = None,
 
     # Auto-trim segments that are too long for the narration at max_speed.
     # For each segment: if source footage > narration_duration * max_speed,
-    # trim centered on key_moment with padding.
-    BREATH_PADDING = 2.0  # seconds padding on each side of narration
+    # trim centered on key_moment with padding for breathing room.
     trimmed = 0
     for seg in segments:
         narration = seg.get("narration", "").strip()
         if not narration:
             continue
         word_count = len(narration.split())
-        narration_secs = word_count / words_per_second + BREATH_PADDING * 2
+        narration_secs = word_count / words_per_second + padding * 2
         max_source = narration_secs * max_speed
         src_dur = seg["end"] - seg["start"]
         if src_dur > max_source:
@@ -141,7 +144,7 @@ def render(video_path: str, edit_path: str, out_path: str = None,
     if trimmed:
         print(f"    Auto-trimmed {trimmed} segment(s) to fit narration pace")
 
-    speeds = [segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second) for seg in segments]
+    speeds = [segment_speed(seg, max_speedup=max_speed, words_per_second=words_per_second, padding=padding) for seg in segments]
 
     print(f"[3/3] Rendering {len(segments)} segment(s) with FFmpeg…")
     total_input = 0.0
@@ -158,7 +161,7 @@ def render(video_path: str, edit_path: str, out_path: str = None,
     print()
 
     srt_path = out_path.with_suffix(".srt")
-    _generate_srt(segments, str(srt_path), max_speed=max_speed, words_per_second=words_per_second)
+    _generate_srt(segments, str(srt_path), max_speed=max_speed, words_per_second=words_per_second, padding=padding)
     print(f"    Subtitles saved → {srt_path}")
 
     # Build FFmpeg filter_complex

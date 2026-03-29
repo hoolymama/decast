@@ -43,6 +43,8 @@ def _add_config_args(parser):
     parser.add_argument("--purpose", default=None,
                         choices=["tutorial", "teaser", "demo"],
                         help="Video purpose/tone (default: tutorial, env: DECAST_PURPOSE)")
+    parser.add_argument("--padding", type=float, default=None,
+                        help="Breathing room in seconds each side of narration (default: 1.5, env: DECAST_PADDING)")
 
 
 def main():
@@ -143,7 +145,8 @@ def main():
                             max_speed=cfg["max_speed"],
                             purpose=cfg["purpose"])
         render(args.video, e_path, burn_subs=args.subs,
-               max_speed=cfg["max_speed"], wpm=cfg["wpm"])
+               max_speed=cfg["max_speed"], wpm=cfg["wpm"],
+               padding=cfg["padding"])
 
     elif args.command == "run":
         _, t_path = transcribe(args.video, whisper_model=cfg["whisper_model"])
@@ -171,7 +174,8 @@ def main():
 
     elif args.command == "render":
         render(args.video, args.edit, args.out, burn_subs=args.subs,
-               max_speed=cfg["max_speed"], wpm=cfg["wpm"])
+               max_speed=cfg["max_speed"], wpm=cfg["wpm"],
+               padding=cfg["padding"])
 
     else:
         parser.print_help()

@@ -60,16 +60,18 @@ def srt_timestamp(seconds: float) -> str:
 
 
 def segment_speed(seg: dict, max_speedup: float = MAX_SPEEDUP,
-                  words_per_second: float = WORDS_PER_SECOND) -> float:
+                  words_per_second: float = WORDS_PER_SECOND,
+                  padding: float = 0.0) -> float:
     """
     Calculate the playback speed for a segment so the video duration
-    matches the time it takes to speak the narration at a natural pace.
+    matches the time it takes to speak the narration at a natural pace,
+    plus optional breathing padding on each side.
     """
     narration = seg.get("narration", "").strip()
     if not narration:
         return 1.0
     word_count = len(narration.split())
-    narration_secs = word_count / words_per_second
+    narration_secs = word_count / words_per_second + padding * 2
     video_secs = seg["end"] - seg["start"]
     if narration_secs <= 0 or video_secs <= narration_secs:
         return 1.0
