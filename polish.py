@@ -21,6 +21,7 @@ load_dotenv()
 
 from decast.config import resolve_config
 from decast.transcribe import transcribe
+from decast.understand import understand
 from decast.rewrite import rewrite
 from decast.render import render
 
@@ -131,7 +132,6 @@ def main():
 
     if args.command == "auto":
         _, t_path = transcribe(args.video, whisper_model=cfg["whisper_model"])
-        from decast.understand import understand
         _, s_path = understand(args.video, t_path,
                                gemini_model=cfg["gemini_model"],
                                gcs_bucket=cfg["gcs_bucket"])
@@ -144,7 +144,6 @@ def main():
 
     elif args.command == "run":
         _, t_path = transcribe(args.video, whisper_model=cfg["whisper_model"])
-        from decast.understand import understand
         _, s_path = understand(args.video, t_path,
                                gemini_model=cfg["gemini_model"],
                                gcs_bucket=cfg["gcs_bucket"])
@@ -157,7 +156,6 @@ def main():
         transcribe(args.video, args.out, whisper_model=cfg["whisper_model"])
 
     elif args.command == "understand":
-        from decast.understand import understand
         understand(args.video, args.transcript, args.out,
                    gemini_model=cfg["gemini_model"],
                    gcs_bucket=cfg["gcs_bucket"])
