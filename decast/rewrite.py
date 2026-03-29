@@ -43,9 +43,8 @@ to keep, and rewritten narration for each.
 
 ## CORE PRINCIPLE
 
-The script is the source of truth. You decide the narration first, then choose
-video segments that show the corresponding action. The video will be sped up or
-trimmed to match the narration duration.
+Write a cohesive, fluent script first. Then select video segments that illustrate
+each part of the script. The video conforms to the script, not the other way around.
 
 ## TONE AND STYLE
 
@@ -71,17 +70,17 @@ Cut out:
 
 Keep only what is essential.
 
-## SPEEDUP CONSTRAINT
+## VIDEO SEGMENT SELECTION
 
-Target narration pace: {wpm} words per minute.
-Maximum video speedup: {max_speed}x.
+Your script is the source of truth — write a cohesive, fluent narration first,
+then select video segments that illustrate it. The video will be sped up or
+trimmed to match.
 
-If a segment's video duration would need more than {max_speed}x speedup to match
-the narration reading time, you MUST tighten the segment's start/end times.
-Use the key_moment timestamps from the scene data to center the segment around
-the most important action. For example, if the key moment is at 14.2s within a
+Maximum video speedup: {max_speed}x. If a segment would need more than
+{max_speed}x speedup, tighten its start/end times around the key_moment from
+the scene data instead. For example, if the key moment is at 14.2s within a
 12.0-24.0s event, trim to something like 13.0-16.0s rather than keeping all 12
-seconds at 5x speed.
+seconds.
 
 ## OUTPUT FORMAT
 
@@ -111,8 +110,8 @@ Return ONLY valid JSON (no prose, no markdown fences):
 
 
 def rewrite(transcript_path: str, scenes_path: str, out_path: str = None,
-            claude_model: str = None, wpm: int = 150,
-            max_speed: float = None, purpose: str = "tutorial") -> tuple[dict, str]:
+            claude_model: str = None, max_speed: float = None,
+            purpose: str = "tutorial") -> tuple[dict, str]:
     """Send transcript + scenes to Claude for editorial rewrite."""
     import anthropic
 
@@ -161,7 +160,7 @@ def rewrite(transcript_path: str, scenes_path: str, out_path: str = None,
     )
 
     purpose_tone = PURPOSE_TONES.get(purpose, PURPOSE_TONES["tutorial"])
-    system_prompt = REWRITE_SYSTEM.format(wpm=wpm, max_speed=max_speed, purpose_tone=purpose_tone)
+    system_prompt = REWRITE_SYSTEM.format(max_speed=max_speed, purpose_tone=purpose_tone)
 
     print(f"[3/4] Sending to Claude for editorial rewrite…")
     client = anthropic.Anthropic(api_key=api_key)

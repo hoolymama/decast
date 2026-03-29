@@ -140,7 +140,6 @@ def main():
                                gcs_bucket=cfg["gcs_bucket"])
         _, e_path = rewrite(t_path, s_path,
                             claude_model=cfg["claude_model"],
-                            wpm=cfg["wpm"],
                             max_speed=cfg["max_speed"],
                             purpose=cfg["purpose"])
         render(args.video, e_path, burn_subs=args.subs,
@@ -153,8 +152,8 @@ def main():
                                gcs_bucket=cfg["gcs_bucket"])
         rewrite(t_path, s_path,
                 claude_model=cfg["claude_model"],
-                wpm=cfg["wpm"],
-                max_speed=cfg["max_speed"])
+                max_speed=cfg["max_speed"],
+                purpose=cfg["purpose"])
 
     elif args.command == "transcribe":
         transcribe(args.video, args.out, whisper_model=cfg["whisper_model"])
@@ -167,8 +166,8 @@ def main():
     elif args.command == "rewrite":
         rewrite(args.transcript, args.scenes, args.out,
                 claude_model=cfg["claude_model"],
-                wpm=cfg["wpm"],
-                max_speed=cfg["max_speed"])
+                max_speed=cfg["max_speed"],
+                purpose=cfg["purpose"])
 
     elif args.command == "render":
         render(args.video, args.edit, args.out, burn_subs=args.subs,
