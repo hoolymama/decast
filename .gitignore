@@ -4,6 +4,7 @@ __pycache__/
 
 # Outputs
 *.transcript.json
+*.scenes.json
 *.edit.json
 *.polished.mp4
 *.polished.script.txt
